@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExamBrowser Web - Ujian Aman</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Mencegah seleksi teks secara global */
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            overflow: hidden; /* Mencegah scroll di body */
+        }
+        
+        /* Animasi kedip untuk peringatan */
+        @keyframes flashRed {
+            0% { background-color: rgba(239, 68, 68, 0.9); }
+            50% { background-color: rgba(185, 28, 28, 0.9); }
+            100% { background-color: rgba(239, 68, 68, 0.9); }
+        }
+        .bg-flash-red {
+            animation: flashRed 1s infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 h-screen w-screen font-sans">
+
+    <!-- HALAMAN SETUP (Sebelum Ujian Mulai) -->
+    <div id="setup-screen" class="flex items-center justify-center h-full">
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-lg w-full border-t-4 border-blue-600">
+            <div class="text-center mb-6">
+                <svg class="w-16 h-16 mx-auto text-blue-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                <h1 class="text-2xl font-bold text-gray-900">Web ExamBrowser</h1>
+                <p class="text-sm text-gray-500 mt-1">Portal Ujian Anti-Contek Terintegrasi</p>
+            </div>
+
+            <form id="setup-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap Siswa</label>
+                    <input type="text" id="student-name" required placeholder="Contoh: Budi Santoso" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Link Google Form Ujian</label>
+                    <input type="url" id="form-url" required placeholder="https://docs.google.com/forms/d/e/.../viewform" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors">
+                    <p class="text-xs text-gray-500 mt-1">Pastikan link bisa diakses publik.</p>
+                </div>
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email Pengawas (Wajib untuk Rekaman)</label>
+                        <input type="email" id="teacher-email" required placeholder="emailguru@sekolah.com" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 outline-none">
+                        <p class="text-xs text-red-500 mt-1">*Laporan & rekaman audio/video dikirim ke sini.</p>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Maksimal Pelanggaran</label>
+                        <div class="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 font-bold">
+                            3 Kali (Ditetapkan)
+                        </div>
+                        <input type="hidden" id="max-warnings" value="3">
+                    </div>
+                </div>
+                
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Waktu Ujian (Menit)</label>
+                        <input type="number" id="exam-duration" value="60" min="1" required 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+                
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-md mt-2">
+                    <p class="text-sm text-blue-800 font-semibold flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        Kamera & Mikrofon Wajib Aktif
+                    </p>
+                    <p class="text-xs text-blue-700 mt-1">Sistem akan merekam audio & memantau video selama ujian berlangsung.</p>
+                </div>
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+                    <div class="flex">
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800">Perhatian Peserta:</h3>
+                            <ul class="mt-2 text-sm text-yellow-700 list-disc list-inside">
+                                <li>Ujian wajib menggunakan mode Layar Penuh (Fullscreen).</li>
+                                <li>Dilarang membuka tab, jendela, atau aplikasi lain.</li>
+                                <li>Dilarang menggunakan kombinasi keyboard (Ctrl+C, dll).</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition-colors shadow-lg flex justify-center items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Mulai Ujian Sekarang
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- HALAMAN UJIAN (Fullscreen) -->
+    <div id="exam-screen" class="hidden flex-col h-screen w-screen bg-white">
+        <!-- Header Ujian -->
+        <header class="bg-gray-900 text-white p-3 flex justify-between items-center shadow-md z-10 shrink-0">
+            <div class="flex items-center gap-3">
+                <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                <span class="font-semibold tracking-wide">ExamBrowser Aktif</span>
+                <span id="mic-indicator" class="hidden flex items-center gap-1 text-xs bg-red-900/50 text-red-400 px-2 py-1 rounded-full border border-red-800 ml-2">
+                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Merekam Audio & Video
+                </span>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2 hidden md:flex">
+                    <span class="text-sm text-gray-400">Pelanggaran:</span>
+                    <span id="warning-counter" class="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">0 / 3</span>
+                </div>
+                <div class="flex flex-col items-end">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-400">Sisa Waktu:</span>
+                        <div id="countdown" class="font-mono text-xl font-bold text-yellow-400">00:00:00</div>
+                    </div>
+                    <div id="clock" class="font-mono text-xs text-gray-500">00:00:00</div>
+                </div>
+                <button id="btn-finish" class="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-sm font-medium transition-colors">Selesai / Keluar</button>
+            </div>
+        </header>
+
+        <!-- Iframe Google Form -->
+        <div class="flex-1 w-full relative">
+            <div id="iframe-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-0">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                <p class="text-gray-500">Memuat soal ujian...</p>
+            </div>
+            <iframe id="google-form-frame" class="w-full h-full border-none relative z-10 bg-white" sandbox="allow-scripts allow-same-origin allow-forms allow-popups camera microphone"></iframe>
+            
+            <!-- Camera Preview -->
+            <div id="camera-container" class="absolute bottom-4 right-4 w-32 h-32 bg-black rounded-lg overflow-hidden border-2 border-gray-600 shadow-xl z-20">
+                <video id="camera-preview" autoplay muted playsinline class="w-full h-full object-cover transform scale-x-[-1]"></video>
+            </div>
+        </div>
+    </div>
+
+    <!-- OVERLAY PERINGATAN (Modal) -->
+    <div id="warning-overlay" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-xl max-w-md w-full text-center shadow-2xl transform scale-100 transition-transform">
+            <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h2 class="text-2xl font-bold text-red-600 mb-2">PERINGATAN!</h2>
+            <p id="warning-message" class="text-gray-700 mb-6 font-medium">Anda terdeteksi melakukan aktivitas yang dilarang.</p>
+            <div class="bg-gray-100 p-4 rounded-lg mb-6">
+                <p class="text-sm text-gray-600">Total Pelanggaran:</p>
+                <p class="text-3xl font-black text-red-600 mt-1"><span id="current-warning-text">1</span> / <span id="max-warning-text">3</span></p>
+            </div>
+            <button id="btn-resume" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition-colors">
+                Kembali ke Layar Penuh & Lanjutkan Ujian
+            </button>
+        </div>
+    </div>
+
+    <!-- OVERLAY LOADING (Proses Selesai/Kirim Email) -->
+    <div id="loading-overlay" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 mb-4"></div>
+        <h2 class="text-2xl font-bold text-white mb-2">Memproses Ujian...</h2>
+        <p class="text-gray-300">Menyimpan rekaman dan mengirim laporan ke pengawas. Mohon tunggu.</p>
+    </div>
+
+    <!-- OVERLAY DIBLOKIR (Disqualified) -->
+    <div id="blocked-overlay" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-flash-red backdrop-blur-md">
+        <div class="bg-white p-8 rounded-xl max-w-lg w-full text-center shadow-2xl">
+            <svg class="w-24 h-24 text-red-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+            <h2 class="text-3xl font-black text-red-600 mb-4 uppercase tracking-wider">Ujian Dihentikan</h2>
+            <p class="text-gray-800 text-lg mb-4">Anda telah melebihi batas maksimal pelanggaran yang diizinkan.</p>
+            <p class="text-sm text-gray-500 mb-2">Akses ujian Anda telah diblokir. Silakan lapor kepada pengawas ujian.</p>
+            <p id="audio-saved-msg" class="hidden text-xs text-green-600 font-semibold mb-8 border border-green-200 bg-green-50 p-2 rounded">✓ Audio bukti ujian telah diunduh otomatis.</p>
+            <button onclick="location.reload()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-md transition-colors">
+                Kembali ke Halaman Utama
+            </button>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // State Ujian
+        let isExamRunning = false;
+        let warningCount = 0;
+        let maxWarnings = 3;
+        let timeRemaining = 0;
+        let timerInterval;
+        let mediaRecorder;
+        let mediaStream;
+        let audioChunks = [];
+        let finalStatus = "";
+        
+        // Data Siswa & Laporan
+        let studentName = "";
+        let teacherEmail = "";
+        
+        // DOM Elements
+        const setupScreen = document.getElementById('setup-screen');
+        const examScreen = document.getElementById('exam-screen');
+        const setupForm = document.getElementById('setup-form');
+        const formUrlInput = document.getElementById('form-url');
+        const iframe = document.getElementById('google-form-frame');
+        const warningOverlay = document.getElementById('warning-overlay');
+        const blockedOverlay = document.getElementById('blocked-overlay');
+        const warningMessage = document.getElementById('warning-message');
+        const warningCounterHeader = document.getElementById('warning-counter');
+        const currentWarningText = document.getElementById('current-warning-text');
+        const maxWarningText = document.getElementById('max-warning-text');
+        const btnResume = document.getElementById('btn-resume');
+        const btnFinish = document.getElementById('btn-finish');
+
+        // Jam Digital
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('id-ID');
+        }, 1000);
+
+        // Format Link Google Form agar tampil lebih baik (embedded mode)
+        function formatGoogleFormUrl(url) {
+            if (url.includes('docs.google.com/forms') && !url.includes('embedded=true')) {
+                if (url.includes('?')) {
+                    return url + '&embedded=true';
+                } else {
+                    return url + '?embedded=true';
+                }
+            }
+            return url;
+        }
+
+        // ==========================================
+        // FITUR ALARM, REKAM AUDIO & TIMER
+        // ==========================================
+
+        // Fungsi Alarm Suara (Beep Peringatan)
+        function playAlarm() {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(440, ctx.currentTime);
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.2); // Bunyi sirine pendek
+            osc.frequency.setValueAtTime(440, ctx.currentTime + 0.4);
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.6);
+            
+            gainNode.gain.value = 0.1; // Volume
+            
+            osc.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.8);
+        }
+
+        // Fungsi Rekam Suara & Tampilkan Kamera
+        async function startRecording() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+                
+                // Tampilkan kamera di layar
+                const videoPreview = document.getElementById('camera-preview');
+                videoPreview.srcObject = mediaStream;
+
+                // Rekam audio & video sebagai bukti
+                mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm' });
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = event => {
+                    if (event.data.size > 0) audioChunks.push(event.data);
+                };
+
+                mediaRecorder.start(1000); // Record per detik
+                document.getElementById('mic-indicator').classList.remove('hidden');
+            } catch (err) {
+                alert("Izin Kamera dan Mikrofon Ditolak! Ujian ini mewajibkan Kamera dan Mikrofon aktif.");
+                throw err; // Stop eksekusi
+            }
+        }
+
+        // Timer Ujian
+        function startTimer(minutes) {
+            timeRemaining = minutes * 60;
+            updateTimerUI();
+            
+            timerInterval = setInterval(() => {
+                if (!isExamRunning) {
+                    clearInterval(timerInterval);
+                    return;
+                }
+                
+                timeRemaining--;
+                updateTimerUI();
+                
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    finishExam("Waktu ujian telah habis! Sistem akan menutup ujian secara otomatis.");
+                }
+            }, 1000);
+        }
+
+        function updateTimerUI() {
+            const h = Math.floor(timeRemaining / 3600);
+            const m = Math.floor((timeRemaining % 3600) / 60);
+            const s = timeRemaining % 60;
+            const countdownEl = document.getElementById('countdown');
+            
+            countdownEl.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            
+            // Peringatan sisa waktu < 5 menit
+            if (timeRemaining < 300 && timeRemaining > 0) {
+                countdownEl.classList.remove('text-yellow-400');
+                countdownEl.classList.add('text-red-500', 'animate-pulse');
+            }
+        }
+
+        // Fungsi Akhiri Ujian Umum (Selesai/Habis Waktu)
+        function finishExam(message) {
+            finalizeExamFlow("Ujian Selesai Normal: " + message, false);
+        }
+
+        // Fungsi Kirim Laporan Peringatan Teks (Tanpa Rekaman)
+        function sendEmailWarning(reason) {
+            if (!teacherEmail) return; 
+
+            fetch(`https://formsubmit.co/ajax/${teacherEmail}`, {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({
+                    _subject: `[PERINGATAN] Pelanggaran Ujian: ${studentName}`,
+                    "Nama Siswa": studentName,
+                    "Waktu Terjadi": new Date().toLocaleString('id-ID'),
+                    "Total Pelanggaran": `${warningCount} / ${maxWarnings}`,
+                    "Detail Pelanggaran": reason,
+                    "Status Ujian Siswa": "PERINGATAN",
+                    _template: "table"
+                })
+            }).catch(e => console.error(e));
+        }
+
+        // Fungsi Finalisasi (Stop Rekaman, Kirim File lampiran, Blokir/Keluar)
+        function finalizeExamFlow(reason, isBlocked) {
+            isExamRunning = false;
+            document.getElementById('loading-overlay').classList.remove('hidden');
+
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.onstop = async () => {
+                    const blob = new Blob(audioChunks, { type: 'video/webm' });
+                    
+                    // Kirim ke Email dengan Attachment (Menggunakan FormData)
+                    if (teacherEmail) {
+                        const formData = new FormData();
+                        formData.append("_subject", `[${isBlocked ? "DIBLOKIR" : "SELESAI"}] Laporan & Rekaman Ujian: ${studentName}`);
+                        formData.append("Nama Siswa", studentName);
+                        formData.append("Waktu Selesai", new Date().toLocaleString('id-ID'));
+                        formData.append("Total Pelanggaran", `${warningCount} / ${maxWarnings}`);
+                        formData.append("Status Ujian", isBlocked ? "DIBLOKIR / DISKUALIFIKASI" : "SELESAI");
+                        formData.append("Keterangan", reason);
+                        formData.append("attachment", blob, `Rekaman_${studentName.replace(/\s+/g, '_')}.webm`);
+
+                        try {
+                            await fetch(`https://formsubmit.co/ajax/${teacherEmail}`, {
+                                method: "POST",
+                                body: formData
+                            });
+                            document.getElementById('audio-saved-msg').textContent = "✓ Laporan dan rekaman berhasil dikirim ke email pengawas.";
+                        } catch (e) {
+                            console.error("Gagal kirim email", e);
+                            document.getElementById('audio-saved-msg').textContent = "⚠️ Gagal kirim email otomatis, file diunduh ke perangkat.";
+                            downloadBlob(blob);
+                        }
+                    } else {
+                        downloadBlob(blob);
+                    }
+
+                    // Matikan Kamera
+                    mediaStream.getTracks().forEach(track => track.stop());
+                    showFinalScreen(isBlocked);
+                };
+                mediaRecorder.stop();
+            } else {
+                showFinalScreen(isBlocked);
+            }
+        }
+
+        function downloadBlob(blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Rekaman_${studentName.replace(/\s+/g, '_')}.webm`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        }
+
+        function showFinalScreen(isBlocked) {
+            document.getElementById('loading-overlay').classList.add('hidden');
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(e => {});
+            }
+
+            if (isBlocked) {
+                examScreen.classList.add('hidden');
+                examScreen.classList.remove('flex');
+                warningOverlay.classList.add('hidden');
+                blockedOverlay.classList.remove('hidden');
+                document.getElementById('audio-saved-msg').classList.remove('hidden');
+                iframe.src = "about:blank";
+            } else {
+                alert("Ujian Selesai. Laporan dan rekaman telah dikirim ke email pengawas.");
+                location.reload();
+            }
+        }
+
+        // Mulai Ujian
+        setupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            studentName = document.getElementById('student-name').value;
+            teacherEmail = document.getElementById('teacher-email').value;
+            const url = formUrlInput.value;
+            maxWarnings = parseInt(document.getElementById('max-warnings').value); // Hardcoded to 3
+            const duration = parseInt(document.getElementById('exam-duration').value);
+            
+            // Set teks batas peringatan
+            maxWarningText.textContent = maxWarnings;
+            updateWarningHeader();
+
+            try {
+                // Wajib akses Kamera dan Mikrofon
+                await startRecording();
+
+                // Request Fullscreen (Wajib interaksi user, makanya ditaruh di event submit)
+                if (document.documentElement.requestFullscreen) {
+                    await document.documentElement.requestFullscreen();
+                } else if (document.documentElement.webkitRequestFullscreen) { /* Safari */
+                    await document.documentElement.webkitRequestFullscreen();
+                } else if (document.documentElement.msRequestFullscreen) { /* IE11 */
+                    await document.documentElement.msRequestFullscreen();
+                }
+                
+                // Jika berhasil fullscreen, setup UI ujian
+                setupScreen.classList.add('hidden');
+                examScreen.classList.remove('hidden');
+                examScreen.classList.add('flex');
+                
+                iframe.src = formatGoogleFormUrl(url);
+                isExamRunning = true;
+
+                // Mulai Timer Mundur
+                startTimer(duration);
+                
+                // Sembunyikan loading setelah iframe dimuat
+                iframe.onload = () => {
+                    document.getElementById('iframe-loading').classList.add('hidden');
+                };
+
+            } catch (err) {
+                alert("Gagal memulai ujian: Anda menolak izin mode Layar Penuh atau Izin Mikrofon.");
+                console.error(err);
+            }
+        });
+
+        // Update indikator header
+        function updateWarningHeader() {
+            warningCounterHeader.textContent = `${warningCount} / ${maxWarnings}`;
+            if(warningCount === 0) {
+                warningCounterHeader.className = "bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full";
+            } else if (warningCount < maxWarnings) {
+                warningCounterHeader.className = "bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full";
+            } else {
+                warningCounterHeader.className = "bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full";
+            }
+        }
+
+        // Fungsi Menangani Pelanggaran
+        function triggerViolation(reason) {
+            if (!isExamRunning) return;
+
+            playAlarm(); // Mainkan Suara Alarm
+
+            warningCount++;
+            updateWarningHeader();
+            currentWarningText.textContent = warningCount;
+            warningMessage.textContent = reason;
+
+            if (warningCount >= maxWarnings) {
+                // BLOKIR TOTAL
+                finalizeExamFlow(reason, true); // Ini akan stop rekaman, kirim attachment, dan blokir UI
+            } else {
+                sendEmailWarning(reason); // Kirim laporan PERINGATAN ke email (tanpa attachment)
+                
+                // Tampilkan Modal Peringatan
+                warningOverlay.classList.remove('hidden');
+            }
+        }
+
+        // Tombol Lanjut Ujian (Resume) setelah peringatan
+        btnResume.addEventListener('click', async () => {
+            try {
+                // Paksa kembali ke fullscreen sebelum lanjut
+                if (!document.fullscreenElement) {
+                    if (document.documentElement.requestFullscreen) {
+                        await document.documentElement.requestFullscreen();
+                    }
+                }
+                warningOverlay.classList.add('hidden');
+            } catch (err) {
+                alert("Anda WAJIB mengizinkan mode Layar Penuh untuk melanjutkan ujian!");
+            }
+        });
+
+        // Tombol Selesai Manual
+        btnFinish.addEventListener('click', () => {
+            const confirmExit = confirm("Apakah Anda yakin sudah mensubmit/mengirim jawaban Google Form dan ingin keluar dari ujian?");
+            if (confirmExit) {
+                finishExam("Ujian Selesai. Terima kasih.");
+            }
+        });
+
+        // ==========================================
+        // SENSOR ANTI-CONTEK
+        // ==========================================
+
+        // 1. Deteksi Keluar Fullscreen (Tekan ESC)
+        document.addEventListener('fullscreenchange', () => {
+            if (isExamRunning && !document.fullscreenElement && warningCount < maxWarnings) {
+                triggerViolation("Anda terdeteksi keluar dari mode Layar Penuh (Fullscreen)!");
+            }
+        });
+
+        // 2. Deteksi Pindah Tab atau Minimize (Visibility Change)
+        document.addEventListener('visibilitychange', () => {
+            if (isExamRunning && document.hidden) {
+                triggerViolation("Anda terdeteksi membuka tab atau aplikasi lain!");
+            }
+        });
+
+        // 3. Deteksi Kehilangan Fokus Window (Alt+Tab fallback)
+        window.addEventListener('blur', () => {
+            // Berikan sedikit delay karena klik di dalam iframe kadang memicu window blur di beberapa browser
+            setTimeout(() => {
+                if (isExamRunning && !document.hasFocus() && !document.hidden) {
+                   // triggerViolation("Layar ujian kehilangan fokus! Jangan membuka jendela lain.");
+                   // Catatan: Window blur terlalu sensitif jika digabung dengan iframe eksternal. 
+                   // Dinonaktifkan sebagian untuk mencegah false-positive, namun Visibility API sudah cukup kuat.
+                }
+            }, 500);
+        });
+
+        // 4. Blokir Klik Kanan (Context Menu)
+        document.addEventListener('contextmenu', (e) => {
+            if(isExamRunning) {
+                e.preventDefault();
+                // Opsional: aktifkan ini jika ingin klik kanan dihitung pelanggaran
+                // triggerViolation("Klik kanan dilarang selama ujian!");
+            }
+        });
+
+        // 5. Blokir Copy, Cut, Paste
+        document.addEventListener('copy', (e) => { if(isExamRunning) e.preventDefault(); });
+        document.addEventListener('cut', (e) => { if(isExamRunning) e.preventDefault(); });
+        document.addEventListener('paste', (e) => { if(isExamRunning) e.preventDefault(); });
+
+        // 6. Blokir Shortcut Keyboard (F12, Ctrl+C, Ctrl+V, PrintScreen, dll)
+        document.addEventListener('keydown', (e) => {
+            if (!isExamRunning) return;
+
+            const forbiddenKeys = ['F12', 'PrintScreen', 'Meta', 'OS']; // Meta/OS adalah tombol Windows/Mac
+            
+            // Deteksi shortcut berbahaya (Ctrl+C, Ctrl+V, Ctrl+Shift+I/J/C, dll)
+            const isCtrl = e.ctrlKey || e.metaKey;
+            
+            if (
+                forbiddenKeys.includes(e.key) || 
+                (isCtrl && ['c', 'v', 'x', 'p', 's', 'u'].includes(e.key.toLowerCase())) ||
+                (isCtrl && e.shiftKey && ['i', 'j', 'c'].includes(e.key.toLowerCase()))
+            ) {
+                e.preventDefault();
+                triggerViolation("Penggunaan pintasan (shortcut) keyboard tersebut dilarang!");
+            }
+        });
+
+        // 7. Konfirmasi sebelum menutup tab (Close / Refresh)
+        window.addEventListener('beforeunload', (e) => {
+            if (isExamRunning) {
+                e.preventDefault();
+                e.returnValue = "Anda sedang ujian! Jika Anda memuat ulang (refresh) halaman ini, jawaban Anda mungkin hilang.";
+                return e.returnValue;
+            }
+        });
+
+    </script>
+</body>
+</html>
